@@ -6,10 +6,9 @@ from collections import Counter
 from statistics import mean
 
 import matplotlib.pyplot as plt
-from numpy import column_stack, dot, log, multiply
+from numpy import add, log, multiply
 from numpy import nan as NAN
-from numpy import ones, subtract,add
-from numpy.linalg import lstsq
+from numpy import subtract
 from scipy.stats import chi2, chi2_contingency, f, fisher_exact
 
 
@@ -314,4 +313,23 @@ def isContaminant(seqtab, conc= None, neg = None, method = "auto", batch = None,
 
     return rval
 
-#TODO add is_not_contaminant method
+
+def isNotContaminant(seqtab, neg=None, threshold=0.5, normalize = True, detailed = False):
+    contamData = isContaminant(seqtab,conc=None,neg=neg,method="prevalence",threshold=threshold,normalize=normalize,detailed=True)
+    contamData["p_freq"] = subtract(1,contamData["p_freq"])
+    contamData["p_prev"] = subtract(1,contamData["p_prev"])
+
+    #calculate overall p-value
+    pval = contamData["p_prev"]
+
+    #make contaminant calls
+    isNotC = [p < threshold if p is not NAN else False for p in pval]
+    contamData["p"] = pval
+    contamData["contaminant"] = None
+    contamData["not_contaminant"] = isNotC
+
+    #make return value
+    if detailed:
+        return contamData
+    else:
+        return isNotC
